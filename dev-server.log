@@ -1,0 +1,14 @@
+
+> study-timer@0.1.0 dev
+> next dev -p 3131
+
+▲ Next.js 16.3.2 (Turbopack)
+- Local:         http://localhost:3131
+- Network:       http://172.30.1.17:3131
+✓ Ready in 928ms
+✓ Running next.config.ts took 47ms
+
+ GET / 200 in 2.9s (next.js: 2.7s, application-code: 236ms)
+ GET / 200 in 46ms (next.js: 14ms, application-code: 32ms)
+ GET / 200 in 57ms (next.js: 10ms, application-code: 46ms)
+ GET / 200 in 49ms (next.js: 7ms, application-code: 41ms)

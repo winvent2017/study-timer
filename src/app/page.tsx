@@ -1,69 +1,160 @@
-import Image from "next/image";
+"use client";
+
+import { useRef, useState } from "react";
+import { AppPhase, SessionSettings, SetRecord } from "@/types";
+import { rollAlarmSilent } from "@/lib/messages";
+import { useStopwatch } from "@/hooks/useStopwatch";
+import { useSettingsStore } from "@/hooks/useSettingsStore";
+
+import SetupScreen from "@/components/SetupScreen";
+import StudyScreen from "@/components/StudyScreen";
+import ImmersionMode from "@/components/ImmersionMode";
+import GiveUpModal from "@/components/GiveUpModal";
+import AlarmModal from "@/components/AlarmModal";
+import CelebrationModal from "@/components/CelebrationModal";
+import BreakScreen from "@/components/BreakScreen";
+import SummaryScreen from "@/components/SummaryScreen";
 
 export default function Home() {
+  const [settings, setSettings] = useSettingsStore();
+  const [phase, setPhase] = useState<AppPhase>("setup");
+  const [setsCompleted, setSetsCompleted] = useState<SetRecord[]>([]);
+  const [showGiveUp, setShowGiveUp] = useState(false);
+  const [showAlarm, setShowAlarm] = useState(false);
+  const [pendingRecord, setPendingRecord] = useState<SetRecord | null>(null);
+
+  const minReachedRef = useRef(false);
+
+  const isUnlimited = settings.setCount === "unlimited";
+  const isFinalSet = !isUnlimited && setsCompleted.length + 1 >= (settings.setCount as number);
+
+  function handleTick(elapsedSeconds: number) {
+    if (phase !== "studying") return;
+    if (minReachedRef.current) return;
+    if (elapsedSeconds >= settings.minMinutes * 60) {
+      minReachedRef.current = true;
+      const silent = rollAlarmSilent(settings.silentProbability);
+      if (silent) {
+        setPhase("immersion");
+      } else {
+        setShowAlarm(true);
+      }
+    }
+  }
+
+  const isRunning = phase === "studying" || phase === "immersion";
+  const { elapsedSeconds, reset } = useStopwatch(isRunning, handleTick);
+
+  function startSession(newSettings: SessionSettings) {
+    setSettings(newSettings);
+    setSetsCompleted([]);
+    beginSet();
+  }
+
+  function beginSet() {
+    minReachedRef.current = false;
+    reset();
+    setPhase("studying");
+  }
+
+  function handleGiveUp() {
+    setShowGiveUp(true);
+  }
+
+  function handleGiveUpClose() {
+    setShowGiveUp(false);
+    setSetsCompleted([]);
+    setPhase("setup");
+  }
+
+  function handleAlarmContinue() {
+    setShowAlarm(false);
+    setPhase("immersion");
+  }
+
+  function handleAlarmRest() {
+    setShowAlarm(false);
+    finishSet();
+  }
+
+  function finishSet() {
+    const targetSeconds = settings.minMinutes * 60;
+    const record: SetRecord = {
+      targetMinutes: settings.minMinutes,
+      elapsedSeconds,
+      multiplier: elapsedSeconds / targetSeconds,
+    };
+    setPendingRecord(record);
+    setPhase("celebration");
+  }
+
+  function handleNextSet() {
+    if (!pendingRecord) return;
+    setSetsCompleted((prev) => [...prev, pendingRecord]);
+    setPendingRecord(null);
+    beginSet();
+  }
+
+  function handleRestAfterCelebration() {
+    if (!pendingRecord) return;
+    setSetsCompleted((prev) => [...prev, pendingRecord]);
+    setPendingRecord(null);
+    setPhase("break");
+  }
+
+  function handleViewSummary() {
+    if (pendingRecord) {
+      setSetsCompleted((prev) => [...prev, pendingRecord]);
+      setPendingRecord(null);
+    }
+    setPhase("summary");
+  }
+
+  function handleBreakStartNext() {
+    beginSet();
+  }
+
+  function handleRestart() {
+    setSetsCompleted([]);
+    setPendingRecord(null);
+    setPhase("setup");
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main>
+      {phase === "setup" && (
+        <SetupScreen key={JSON.stringify(settings)} initialSettings={settings} onStart={startSession} />
+      )}
+
+      {phase === "studying" && (
+        <StudyScreen minMinutes={settings.minMinutes} elapsedSeconds={elapsedSeconds} onGiveUp={handleGiveUp} />
+      )}
+
+      {phase === "immersion" && <ImmersionMode onStop={finishSet} />}
+
+      {phase === "break" && (
+        <BreakScreen
+          breakMinutes={settings.breakMinutes}
+          onStartNext={handleBreakStartNext}
+          onViewSummary={() => setPhase("summary")}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      )}
+
+      {phase === "summary" && <SummaryScreen sets={setsCompleted} onRestart={handleRestart} />}
+
+      {showGiveUp && <GiveUpModal onClose={handleGiveUpClose} />}
+      {showAlarm && (
+        <AlarmModal minMinutes={settings.minMinutes} onContinue={handleAlarmContinue} onRest={handleAlarmRest} />
+      )}
+      {phase === "celebration" && pendingRecord && (
+        <CelebrationModal
+          record={pendingRecord}
+          isFinalSet={isFinalSet}
+          onNextSet={handleNextSet}
+          onRest={handleRestAfterCelebration}
+          onViewSummary={handleViewSummary}
+        />
+      )}
+    </main>
   );
 }
