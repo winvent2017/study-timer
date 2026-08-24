@@ -1,101 +1,32 @@
-# 작업 요청: 텍스트 문자열 중앙화 리팩토링 (다국어 준비)
+# 작업 요청: 프로젝트 규칙 문서에 "텍스트 중앙화" 컨벤션 등록
 
 ## 배경
 
-EasyDeeper는 향후 한/일/영/스페인어 다국어 지원을 계획하고 있습니다(3단계 예정). 지금 단계에서 실제 다국어 시스템을 구축하지는 않지만, **화면에 보이는 모든 한국어 텍스트를 컴포넌트 코드에서 분리해 별도 파일로 모아두는 작업**을 지금 미리 해두려고 합니다. 이렇게 해두면 나중에 언어별 파일만 추가하면 되고, 컴포넌트 코드는 거의 건드릴 필요가 없어집니다.
-
-**이번 작업은 순수 리팩토링입니다. 기능/동작/디자인은 절대 변경하지 않고, 텍스트가 저장되는 위치만 바꿉니다.**
+최근 리팩토링으로 모든 화면 텍스트를 `src/lib/strings/ko.ts`로 분리해두었습니다 (다국어 확장 대비). 이 컨벤션이 앞으로의 모든 기능 추가/수정 작업에서도 계속 지켜지도록, 매번 프롬프트에서 개별적으로 지시하지 않아도 자동으로 적용되게끔 프로젝트 규칙 문서에 못박아두려고 합니다.
 
 ## 요구사항
 
-### 1. 문자열 파일 생성
+### 1. 대상 파일
 
-- `src/lib/strings/ko.ts` 파일을 새로 생성 (폴더 구조로 만들어, 나중에 `en.ts`, `ja.ts`, `es.ts`를 같은 위치에 추가하기 쉽게 함)
-- 화면/컴포넌트 단위로 중첩 객체 구조 사용:
+`CLAUDE.md`와 `AGENTS.md` 둘 다에 아래 규칙을 추가할 것 (두 파일의 기존 형식/스타일에 맞춰 자연스럽게 통합).
 
-```typescript
-export const strings = {
-  header: {
-    logo: "EasyDeeper",
-    login: "로그인",
-    signup: "회원가입",
-  },
-  setup: {
-    title: "...",
-    minStudyTimeLabel: "최소 학습시간",
-    // ...
-  },
-  study: {
-    // StudyScreen 관련 텍스트
-  },
-  immersion: {
-    // ImmersionMode 관련 텍스트
-  },
-  alarm: {
-    // AlarmModal 관련 텍스트
-  },
-  giveUp: {
-    // GiveUpModal 관련 텍스트, 격려 멘트 배열 포함
-  },
-  celebration: {
-    // CelebrationModal 관련 텍스트, 배수 축하 문구 템플릿
-  },
-  break: {
-    // BreakScreen 관련 텍스트
-  },
-  summary: {
-    // SummaryScreen 관련 텍스트
-  },
-} as const;
-```
+### 2. 추가할 규칙 내용
 
-### 2. 대상 파일 (하드코딩된 한국어 텍스트를 찾아서 이동)
+아래 취지를 담아 각 파일의 컨벤션에 맞는 위치와 형식으로 작성:
 
-아래 파일들을 전수 조사해서, JSX 안에 직접 쓰인 한국어 문자열과 `lib/messages.ts`의 문구들을 모두 위 `strings/ko.ts`로 이동:
+- 화면에 노출되는 모든 텍스트(버튼 라벨, 안내 문구, 모달 메시지, 격려 멘트, 축하 문구, 에러 메시지 등)는 컴포넌트(JSX) 안에 직접 하드코딩하지 않는다.
+- 반드시 `src/lib/strings/ko.ts`에 화면/컴포넌트 단위로 중첩된 객체 구조로 추가하고, 컴포넌트에서는 `import { strings } from "@/lib/strings/ko"` 형태로 참조한다.
+- 숫자 등 동적 값이 포함된 문구는 `(param) => \`...\``형태의 함수로`strings/ko.ts`에 저장한다.
+- 여러 개 중 랜덤으로 선택되는 문구(격려 멘트 등)도 배열 형태로 `strings/ko.ts`에 저장하고, 로직 파일(`messages.ts` 등)은 선택/계산 로직만 담당한다.
+- 이 규칙의 목적: 향후 다국어(en/ja/es) 지원 시 `strings/en.ts` 등 언어별 파일만 추가하면 되고, 컴포넌트 코드는 수정할 필요가 없도록 하기 위함.
+- 예외: 콘솔 로그, 코드 주석, 변수/함수명 등 화면에 노출되지 않는 텍스트는 대상이 아님.
 
-- `src/components/SetupScreen.tsx`
-- `src/components/StudyScreen.tsx`
-- `src/components/ImmersionMode.tsx`
-- `src/components/AlarmModal.tsx`
-- `src/components/GiveUpModal.tsx`
-- `src/components/CelebrationModal.tsx`
-- `src/components/BreakScreen.tsx`
-- `src/components/SummaryScreen.tsx`
-- `src/components/Modal.tsx`
-- `src/lib/messages.ts` (격려 멘트, 확률 판정 관련 문구, 축하 문구 생성 로직)
-- 새로 추가된 `src/components/Header.tsx`
+### 3. 형식 참고
 
-### 3. 동적 문구(템플릿) 처리 방식
-
-`messages.ts`의 `celebrationLine` 같은 함수는 "목표의 O배! 축하합니다"처럼 숫자가 문장 중간에 들어가는 템플릿입니다. 이런 경우:
-
-- 텍스트 템플릿 자체(placeholder 포함)는 `strings/ko.ts`에 함수 형태로 저장
-  ```typescript
-  celebration: {
-    multiplierLine: (multiplier: number) => `목표의 ${multiplier}배! 축하합니다`,
-  }
-  ```
-- `messages.ts`는 로직(확률 계산, 랜덤 선택 등)만 남기고, 실제 출력 문자열은 `strings/ko.ts`를 참조하도록 수정
-- 격려 멘트처럼 여러 개 중 랜덤으로 뽑는 배열도 `strings/ko.ts`에 배열로 저장하고, `messages.ts`는 그 배열에서 랜덤 인덱스만 뽑는 역할로 축소
-
-### 4. 컴포넌트 수정 방식
-
-각 컴포넌트 상단에서 필요한 부분만 import:
-
-```typescript
-import { strings } from "@/lib/strings/ko";
-// ...
-<button>{strings.header.login}</button>
-```
-
-### 5. 제외 대상 (건드리지 않을 것)
-
-- 콘솔 로그, 주석, 변수명, 함수명 등 화면에 노출되지 않는 텍스트는 그대로 둠
-- 숫자, 단위 표시 로직(`format.ts`)은 이번 범위에서 제외 (별도 작업으로 분리)
+기존 두 파일에 이미 있는 규칙들과 톤/포맷을 맞춰서 자연스럽게 추가할 것. 별도 섹션으로 새로 만들지, 기존 "코드 스타일" 또는 "컨벤션" 관련 섹션에 항목을 추가할지는 각 파일의 기존 구조를 보고 적절히 판단할 것.
 
 ## 완료 후 확인 요청
 
-1. `strings/ko.ts` 이외의 곳에 하드코딩된 한국어 문자열이 남아있지 않은지 전체 grep으로 재확인
-2. 리팩토링 전후로 화면 텍스트가 토씨 하나 다르지 않고 동일한지 (문구 변경 없이 위치만 이동했는지)
-3. 기존 기능(확률 알람, 몰입 모드, 축하 연출 등)이 전과 동일하게 동작하는지
-4. TypeScript 타입 에러 없는지
+1. `CLAUDE.md`, `AGENTS.md` 양쪽에 모두 반영되었는지
+2. 기존 문서의 다른 내용/구조를 훼손하지 않았는지
+3. 규칙 문구가 실제 작업 시 판단 기준으로 쓸 수 있을 만큼 구체적인지 (애매한 선언 문장이 아니라 "어디에, 어떤 형태로" 저장하라는 실행 가능한 지침인지)
