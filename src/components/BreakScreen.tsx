@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCountdown } from "@/hooks/useCountdown";
 import { formatClock } from "@/lib/format";
+import { strings } from "@/lib/strings/ko";
 
 interface Props {
   breakMinutes: number;
@@ -17,7 +18,7 @@ export default function BreakScreen({ breakMinutes, onStartNext, onViewSummary }
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-10 px-5 py-10">
-      <p className="text-sm text-[var(--foreground)]/60">휴식 중이에요 ☕</p>
+      <p className="text-sm text-[var(--foreground)]/60">{strings.break.restingMessage}</p>
 
       <div className="relative flex h-56 w-56 items-center justify-center">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
@@ -43,25 +44,25 @@ export default function BreakScreen({ breakMinutes, onStartNext, onViewSummary }
       {finished ? (
         <div className="flex w-full flex-col items-center gap-4">
           <p className="text-center text-base font-medium text-[var(--foreground)]">
-            다음 세트를 시작할까요?
+            {strings.break.startNextQuestion}
           </p>
           <div className="flex w-full gap-3">
             <button
               onClick={onViewSummary}
               className="flex-1 rounded-2xl border border-[var(--foreground)]/15 py-3 font-medium text-[var(--foreground)]/80 transition active:scale-[0.98]"
             >
-              오늘은 그만
+              {strings.break.stopForTodayButton}
             </button>
             <button
               onClick={onStartNext}
               className="flex-1 rounded-2xl bg-[var(--accent)] py-3 font-semibold text-white transition active:scale-[0.98]"
             >
-              시작하기
+              {strings.break.startButton}
             </button>
           </div>
         </div>
       ) : (
-        <p className="text-center text-sm text-[var(--foreground)]/60">잠시 눈을 쉬어가요</p>
+        <p className="text-center text-sm text-[var(--foreground)]/60">{strings.break.restEyesMessage}</p>
       )}
     </div>
   );

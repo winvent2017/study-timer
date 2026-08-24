@@ -1,5 +1,7 @@
 "use client";
 
+import { strings } from "@/lib/strings/ko";
+
 export default function ImmersionMode({ onStop }: { onStop: () => void }) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-10 px-5 py-10">
@@ -9,9 +11,9 @@ export default function ImmersionMode({ onStop }: { onStop: () => void }) {
       </div>
 
       <div className="text-center">
-        <p className="text-lg font-semibold text-[var(--foreground)]">열공 중...</p>
+        <p className="text-lg font-semibold text-[var(--foreground)]">{strings.immersion.title}</p>
         <p className="mt-2 text-sm text-[var(--foreground)]/60">
-          지금은 시간 대신 몰입에만 집중해봐요
+          {strings.immersion.subtitle}
         </p>
       </div>
 
@@ -19,7 +21,7 @@ export default function ImmersionMode({ onStop }: { onStop: () => void }) {
         onClick={onStop}
         className="rounded-2xl bg-[var(--accent)] px-10 py-3 font-semibold text-white shadow-md transition active:scale-[0.98]"
       >
-        그만하기
+        {strings.immersion.stopButton}
       </button>
     </div>
   );

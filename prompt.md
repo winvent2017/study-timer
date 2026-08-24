@@ -1,53 +1,101 @@
-# 작업 요청: 상단 헤더(Header) 추가
+# 작업 요청: 텍스트 문자열 중앙화 리팩토링 (다국어 준비)
 
 ## 배경
 
-EasyDeeper는 현재 설정 화면만 있고 상단 헤더가 없는 상태입니다. 브랜드 신뢰도를 높이기 위해 로고와 로그인/회원가입 버튼이 있는 헤더를 추가합니다. **이번 작업은 UI 형식만 구현**하며, 실제 로그인/회원가입 기능(인증 로직)은 구현하지 않습니다.
+EasyDeeper는 향후 한/일/영/스페인어 다국어 지원을 계획하고 있습니다(3단계 예정). 지금 단계에서 실제 다국어 시스템을 구축하지는 않지만, **화면에 보이는 모든 한국어 텍스트를 컴포넌트 코드에서 분리해 별도 파일로 모아두는 작업**을 지금 미리 해두려고 합니다. 이렇게 해두면 나중에 언어별 파일만 추가하면 되고, 컴포넌트 코드는 거의 건드릴 필요가 없어집니다.
+
+**이번 작업은 순수 리팩토링입니다. 기능/동작/디자인은 절대 변경하지 않고, 텍스트가 저장되는 위치만 바꿉니다.**
 
 ## 요구사항
 
-### 1. 헤더 구성
+### 1. 문자열 파일 생성
 
-- **좌측**: "EasyDeeper" 텍스트 로고 (도메인 표기 없이 브랜드명만, 적당히 큰 폰트 사이즈)
-- **우측**: "로그인" 버튼, "회원가입" 버튼
-  - 로그인: 고스트/텍스트 스타일 버튼 (테두리만 있거나 배경 없음)
-  - 회원가입: 기존 "시작하기" 버튼과 동일한 primary 스타일 (오렌지 계열 필 버튼)
-- 기존 프로젝트의 색상 팔레트(크림/피치 배경, 오렌지 포인트 컬러, 다크 네이비 텍스트)와 Tailwind 설정을 그대로 재사용할 것. 새로운 색상 값을 임의로 추가하지 말 것.
+- `src/lib/strings/ko.ts` 파일을 새로 생성 (폴더 구조로 만들어, 나중에 `en.ts`, `ja.ts`, `es.ts`를 같은 위치에 추가하기 쉽게 함)
+- 화면/컴포넌트 단위로 중첩 객체 구조 사용:
 
-### 2. 기능 범위 (중요)
+```typescript
+export const strings = {
+  header: {
+    logo: "EasyDeeper",
+    login: "로그인",
+    signup: "회원가입",
+  },
+  setup: {
+    title: "...",
+    minStudyTimeLabel: "최소 학습시간",
+    // ...
+  },
+  study: {
+    // StudyScreen 관련 텍스트
+  },
+  immersion: {
+    // ImmersionMode 관련 텍스트
+  },
+  alarm: {
+    // AlarmModal 관련 텍스트
+  },
+  giveUp: {
+    // GiveUpModal 관련 텍스트, 격려 멘트 배열 포함
+  },
+  celebration: {
+    // CelebrationModal 관련 텍스트, 배수 축하 문구 템플릿
+  },
+  break: {
+    // BreakScreen 관련 텍스트
+  },
+  summary: {
+    // SummaryScreen 관련 텍스트
+  },
+} as const;
+```
 
-- 로그인/회원가입 버튼은 **클릭은 되지만 실제 동작은 없음** (예: `onClick={() => {}}` 또는 콘솔 로그만 출력)
-- 나중에 실제 인증 로직을 붙이기 쉽도록 핸들러 함수를 분리된 형태로 작성 (예: `handleLoginClick`, `handleSignupClick`을 컴포넌트 내부에 정의해두고 지금은 빈 함수 또는 TODO 주석만)
-- 별도 라우팅(`/login`, `/signup` 페이지)이나 모달은 이번 단계에서 만들지 않음
+### 2. 대상 파일 (하드코딩된 한국어 텍스트를 찾아서 이동)
 
-### 3. 노출 범위 (중요 — 몰입 철학 유지)
+아래 파일들을 전수 조사해서, JSX 안에 직접 쓰인 한국어 문자열과 `lib/messages.ts`의 문구들을 모두 위 `strings/ko.ts`로 이동:
 
-헤더는 **모든 화면에 항상 떠 있지 않습니다.** 아래 기준으로 조건부 렌더링합니다:
+- `src/components/SetupScreen.tsx`
+- `src/components/StudyScreen.tsx`
+- `src/components/ImmersionMode.tsx`
+- `src/components/AlarmModal.tsx`
+- `src/components/GiveUpModal.tsx`
+- `src/components/CelebrationModal.tsx`
+- `src/components/BreakScreen.tsx`
+- `src/components/SummaryScreen.tsx`
+- `src/components/Modal.tsx`
+- `src/lib/messages.ts` (격려 멘트, 확률 판정 관련 문구, 축하 문구 생성 로직)
+- 새로 추가된 `src/components/Header.tsx`
 
-- **헤더 보임**: 설정 화면(SetupScreen), 세트 종료 요약 화면(SummaryScreen)
-- **헤더 숨김**: 집중 진행 중(StudyScreen), 몰입 모드(ImmersionMode), 휴식 화면(BreakScreen), 알람 모달/포기 모달/축하 모달이 뜬 상태
+### 3. 동적 문구(템플릿) 처리 방식
 
-이유: 몰입 모드의 핵심 철학이 "숫자와 방해 요소를 완전히 제거"하는 것이므로, 집중 중에는 헤더도 함께 사라져야 몰입감이 유지됩니다.
+`messages.ts`의 `celebrationLine` 같은 함수는 "목표의 O배! 축하합니다"처럼 숫자가 문장 중간에 들어가는 템플릿입니다. 이런 경우:
 
-구현 방식: `src/app/page.tsx`의 phase 상태 머신이 현재 어떤 phase인지 이미 관리하고 있을 것이므로, 헤더를 전역 `layout.tsx`가 아니라 `page.tsx`에서 phase에 따라 조건부로 렌더링하는 방식을 사용하세요. (layout.tsx는 phase 상태에 접근할 수 없으므로 적합하지 않음)
+- 텍스트 템플릿 자체(placeholder 포함)는 `strings/ko.ts`에 함수 형태로 저장
+  ```typescript
+  celebration: {
+    multiplierLine: (multiplier: number) => `목표의 ${multiplier}배! 축하합니다`,
+  }
+  ```
+- `messages.ts`는 로직(확률 계산, 랜덤 선택 등)만 남기고, 실제 출력 문자열은 `strings/ko.ts`를 참조하도록 수정
+- 격려 멘트처럼 여러 개 중 랜덤으로 뽑는 배열도 `strings/ko.ts`에 배열로 저장하고, `messages.ts`는 그 배열에서 랜덤 인덱스만 뽑는 역할로 축소
 
-### 4. 컴포넌트 구조
+### 4. 컴포넌트 수정 방식
 
-- 새 컴포넌트 파일: `src/components/Header.tsx`
-- props 없이 독립적으로 동작 가능하도록 작성 (로그인 상태 등은 아직 없으므로 항상 "로그인 전" 상태로 표시)
-- 반응형 고려: 모바일에서도 로고와 버튼 2개가 한 줄에 자연스럽게 들어가도록 (버튼 텍스트가 길지 않으니 wrap 없이 가능할 것)
+각 컴포넌트 상단에서 필요한 부분만 import:
 
-### 5. 스타일 참고
+```typescript
+import { strings } from "@/lib/strings/ko";
+// ...
+<button>{strings.header.login}</button>
+```
 
-- 헤더는 sticky/fixed가 아닌 일반 상단 배치로 시작 (스크롤 시 고정 여부는 추후 결정)
-- 헤더와 본문 사이 적절한 여백(padding/margin) 확보
-- 기존 SetupScreen의 카드 UI와 시각적으로 조화되도록, 헤더 배경은 페이지 배경(크림)과 같거나 아주 미세하게 구분되는 톤 사용
+### 5. 제외 대상 (건드리지 않을 것)
+
+- 콘솔 로그, 주석, 변수명, 함수명 등 화면에 노출되지 않는 텍스트는 그대로 둠
+- 숫자, 단위 표시 로직(`format.ts`)은 이번 범위에서 제외 (별도 작업으로 분리)
 
 ## 완료 후 확인 요청
 
-작업 완료 후 다음을 확인해주세요:
-
-1. 설정 화면과 요약 화면에서 헤더가 정상적으로 보이는지
-2. 타이머 진행/몰입 모드/휴식 화면에서 헤더가 보이지 않는지
-3. 로그인/회원가입 버튼 클릭 시 에러 없이 아무 동작도 하지 않는지 (콘솔 로그는 정상)
-4. 모바일 너비(375px 기준)에서 레이아웃이 깨지지 않는지
+1. `strings/ko.ts` 이외의 곳에 하드코딩된 한국어 문자열이 남아있지 않은지 전체 grep으로 재확인
+2. 리팩토링 전후로 화면 텍스트가 토씨 하나 다르지 않고 동일한지 (문구 변경 없이 위치만 이동했는지)
+3. 기존 기능(확률 알람, 몰입 모드, 축하 연출 등)이 전과 동일하게 동작하는지
+4. TypeScript 타입 에러 없는지

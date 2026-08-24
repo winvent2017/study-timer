@@ -1,6 +1,7 @@
 "use client";
 
 import { formatClock } from "@/lib/format";
+import { strings } from "@/lib/strings/ko";
 
 interface Props {
   minMinutes: number;
@@ -15,7 +16,7 @@ export default function StudyScreen({ minMinutes, elapsedSeconds, onGiveUp }: Pr
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-10 px-5 py-10">
-      <p className="text-sm text-[var(--foreground)]/60">집중하는 중이에요</p>
+      <p className="text-sm text-[var(--foreground)]/60">{strings.study.focusingMessage}</p>
 
       <div className="relative flex h-56 w-56 items-center justify-center">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
@@ -39,14 +40,14 @@ export default function StudyScreen({ minMinutes, elapsedSeconds, onGiveUp }: Pr
       </div>
 
       <p className="text-center text-sm text-[var(--foreground)]/60">
-        최소 {minMinutes}분까지는 함께 버텨봐요
+        {strings.study.minTimeMessage(minMinutes)}
       </p>
 
       <button
         onClick={onGiveUp}
         className="rounded-2xl border border-[var(--foreground)]/15 px-8 py-3 text-sm font-medium text-[var(--foreground)]/70 transition active:scale-[0.98]"
       >
-        포기
+        {strings.study.giveUpButton}
       </button>
     </div>
   );
