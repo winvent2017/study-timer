@@ -6,6 +6,7 @@ import { rollAlarmSilent } from "@/lib/messages";
 import { useStopwatch } from "@/hooks/useStopwatch";
 import { useSettingsStore } from "@/hooks/useSettingsStore";
 
+import Header from "@/components/Header";
 import SetupScreen from "@/components/SetupScreen";
 import StudyScreen from "@/components/StudyScreen";
 import ImmersionMode from "@/components/ImmersionMode";
@@ -120,8 +121,12 @@ export default function Home() {
     setPhase("setup");
   }
 
+  const showHeader = phase === "setup" || phase === "summary";
+
   return (
     <main>
+      {showHeader && <Header />}
+
       {phase === "setup" && (
         <SetupScreen key={JSON.stringify(settings)} initialSettings={settings} onStart={startSession} />
       )}
