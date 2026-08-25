@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SessionSettings } from "@/types";
 import { strings } from "@/lib/strings/ko";
+import SetCountGrid from "@/components/SetCountGrid";
 
 interface Props {
   initialSettings: SessionSettings;
@@ -11,7 +12,7 @@ interface Props {
 
 export default function SetupScreen({ initialSettings, onStart }: Props) {
   const [settings, setSettings] = useState<SessionSettings>(initialSettings);
-  const [unlimited, setUnlimited] = useState(initialSettings.setCount === "unlimited");
+  const [committedSetCount, setCommittedSetCount] = useState(initialSettings.setCount);
 
   function handleStart() {
     onStart(settings);
@@ -36,6 +37,19 @@ export default function SetupScreen({ initialSettings, onStart }: Props) {
           onChange={(v) => setSettings((s) => ({ ...s, minMinutes: v }))}
         />
 
+        <div>
+          <FieldSlider
+            label={strings.setup.setCountLabel}
+            value={settings.setCount}
+            unit={strings.setup.setCountUnit}
+            min={1}
+            max={20}
+            onChange={(v) => setSettings((s) => ({ ...s, setCount: v }))}
+            onCommit={setCommittedSetCount}
+          />
+          <SetCountGrid setCount={committedSetCount} minMinutes={settings.minMinutes} />
+        </div>
+
         <FieldSlider
           label={strings.setup.breakTimeLabel}
           value={settings.breakMinutes}
@@ -44,42 +58,6 @@ export default function SetupScreen({ initialSettings, onStart }: Props) {
           max={60}
           onChange={(v) => setSettings((s) => ({ ...s, breakMinutes: v }))}
         />
-
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label className="text-sm font-medium text-[var(--foreground)]">{strings.setup.setCountLabel}</label>
-            <label className="flex items-center gap-1.5 text-xs text-[var(--foreground)]/70">
-              <input
-                type="checkbox"
-                checked={unlimited}
-                onChange={(e) => {
-                  setUnlimited(e.target.checked);
-                  setSettings((s) => ({
-                    ...s,
-                    setCount: e.target.checked ? "unlimited" : 3,
-                  }));
-                }}
-                className="h-4 w-4 accent-[var(--accent)]"
-              />
-              {strings.setup.unlimitedLabel}
-            </label>
-          </div>
-          {!unlimited && (
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={typeof settings.setCount === "number" ? settings.setCount : 3}
-              onChange={(e) =>
-                setSettings((s) => ({
-                  ...s,
-                  setCount: Math.max(1, Number(e.target.value) || 1),
-                }))
-              }
-              className="w-full rounded-xl border border-[var(--accent)]/40 bg-[var(--background)] px-4 py-2 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
-            />
-          )}
-        </div>
 
         <FieldSlider
           label={strings.setup.silentProbabilityLabel}
@@ -112,6 +90,7 @@ function FieldSlider({
   min,
   max,
   onChange,
+  onCommit,
 }: {
   label: string;
   value: number;
@@ -119,7 +98,12 @@ function FieldSlider({
   min: number;
   max: number;
   onChange: (v: number) => void;
+  onCommit?: (v: number) => void;
 }) {
+  function commit(e: { currentTarget: HTMLInputElement }) {
+    onCommit?.(Number(e.currentTarget.value));
+  }
+
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
@@ -135,6 +119,9 @@ function FieldSlider({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        onMouseUp={commit}
+        onTouchEnd={commit}
+        onKeyUp={commit}
         className="w-full accent-[var(--accent)]"
       />
     </div>

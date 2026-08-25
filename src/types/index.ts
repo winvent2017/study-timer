@@ -1,9 +1,7 @@
-export type SetCount = number | "unlimited";
-
 export interface SessionSettings {
   minMinutes: number;
   breakMinutes: number;
-  setCount: SetCount;
+  setCount: number;
   silentProbability: number; // 0-100, chance the alarm does NOT ring
 }
 

@@ -7,13 +7,15 @@ export const strings = {
   setup: {
     title: "몰입 서프라이즈 타이머",
     subtitle: "숫자와 시간 압박 없이, 불확실성으로 몰입을 유도해요.",
-    minStudyTimeLabel: "최소 학습시간",
+    minStudyTimeLabel: "1세트 최소 학습시간",
     breakTimeLabel: "휴식시간",
     setCountLabel: "세트 반복 횟수",
-    unlimitedLabel: "무제한",
     silentProbabilityLabel: "알람이 안 울릴 확률",
     minuteUnit: "분",
     percentUnit: "%",
+    setCountUnit: "회",
+    totalTimeSummary: (minMinutes: number, setCount: number, total: number) =>
+      `총 예상 시간: ${minMinutes}분 × ${setCount}세트 = ${total}분`,
     notice:
       "이 타이머는 가끔 예정된 시간에 울리지 않을 수 있어요. 당신도 몰랐던 집중 잠재력을 끌어올리기 위한 장치입니다.",
     startButton: "시작하기",

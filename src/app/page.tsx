@@ -26,8 +26,7 @@ export default function Home() {
 
   const minReachedRef = useRef(false);
 
-  const isUnlimited = settings.setCount === "unlimited";
-  const isFinalSet = !isUnlimited && setsCompleted.length + 1 >= (settings.setCount as number);
+  const isFinalSet = setsCompleted.length + 1 >= settings.setCount;
 
   function handleTick(elapsedSeconds: number) {
     if (phase !== "studying") return;
