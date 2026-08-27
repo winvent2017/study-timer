@@ -3,8 +3,15 @@
 import { SetRecord } from "@/types";
 import { formatMultiplier } from "@/lib/messages";
 import { strings } from "@/lib/strings/ko";
+import SetCountGrid from "@/components/SetCountGrid";
 
-export default function SummaryScreen({ sets, onRestart }: { sets: SetRecord[]; onRestart: () => void }) {
+interface Props {
+  sets: SetRecord[];
+  setCount: number;
+  onRestart: () => void;
+}
+
+export default function SummaryScreen({ sets, setCount, onRestart }: Props) {
   const totalSeconds = sets.reduce((sum, s) => sum + s.elapsedSeconds, 0);
   const totalMinutes = Math.round(totalSeconds / 60);
   const best = sets.reduce((max, s) => (s.multiplier > max.multiplier ? s : max), sets[0]);
@@ -15,6 +22,13 @@ export default function SummaryScreen({ sets, onRestart }: { sets: SetRecord[]; 
         <p className="text-3xl">🏆</p>
         <h1 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{strings.summary.title}</h1>
       </div>
+
+      <SetCountGrid
+        setCount={setCount}
+        minMinutes={sets[0]?.targetMinutes ?? 0}
+        completedCount={sets.length}
+        showSummary={false}
+      />
 
       <div className="rounded-3xl bg-[var(--accent)]/10 p-6 text-center">
         <p className="text-sm text-[var(--foreground)]/60">{strings.summary.totalFocusTimeLabel}</p>

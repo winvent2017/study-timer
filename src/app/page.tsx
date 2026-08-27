@@ -144,7 +144,9 @@ export default function Home() {
         />
       )}
 
-      {phase === "summary" && <SummaryScreen sets={setsCompleted} onRestart={handleRestart} />}
+      {phase === "summary" && (
+        <SummaryScreen sets={setsCompleted} setCount={settings.setCount} onRestart={handleRestart} />
+      )}
 
       {showGiveUp && <GiveUpModal onClose={handleGiveUpClose} />}
       {showAlarm && (
@@ -154,6 +156,8 @@ export default function Home() {
         <CelebrationModal
           record={pendingRecord}
           isFinalSet={isFinalSet}
+          setCount={settings.setCount}
+          completedCount={setsCompleted.length + 1}
           onNextSet={handleNextSet}
           onRest={handleRestAfterCelebration}
           onViewSummary={handleViewSummary}

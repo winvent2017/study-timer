@@ -2,6 +2,7 @@
 
 import Modal from "./Modal";
 import Confetti from "./Confetti";
+import SetCountGrid from "./SetCountGrid";
 import { SetRecord } from "@/types";
 import { celebrationLine } from "@/lib/messages";
 import { strings } from "@/lib/strings/ko";
@@ -9,12 +10,22 @@ import { strings } from "@/lib/strings/ko";
 interface Props {
   record: SetRecord;
   isFinalSet: boolean;
+  setCount: number;
+  completedCount: number;
   onNextSet: () => void;
   onRest: () => void;
   onViewSummary: () => void;
 }
 
-export default function CelebrationModal({ record, isFinalSet, onNextSet, onRest, onViewSummary }: Props) {
+export default function CelebrationModal({
+  record,
+  isFinalSet,
+  setCount,
+  completedCount,
+  onNextSet,
+  onRest,
+  onViewSummary,
+}: Props) {
   return (
     <>
       <Confetti />
@@ -23,6 +34,15 @@ export default function CelebrationModal({ record, isFinalSet, onNextSet, onRest
         <p className="mt-3 text-lg font-medium leading-relaxed text-[var(--foreground)]">
           {celebrationLine(record.targetMinutes, record.elapsedSeconds, record.multiplier)}
         </p>
+
+        <SetCountGrid
+          setCount={setCount}
+          minMinutes={record.targetMinutes}
+          completedCount={completedCount}
+          justCompleted
+          compact
+          showSummary={false}
+        />
 
         {isFinalSet ? (
           <button
