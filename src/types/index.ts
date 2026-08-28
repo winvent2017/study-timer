@@ -25,3 +25,18 @@ export type AppPhase =
   | "celebration"
   | "break"
   | "summary";
+
+export type ImmersionStepType = "darken" | "silence" | "number" | "text" | "fade";
+
+export interface ImmersionStep {
+  type: ImmersionStepType;
+  content?: string; // number/text 단계에서 표시할 내용
+  durationMs: number; // 이 단계의 총 지속 시간
+  audioSrc?: string; // 향후 음성 낭독용 (이번 작업에서는 사용하지 않음, 필드만 존재)
+}
+
+export interface ImmersionSequence {
+  id: string;
+  name: string;
+  steps: ImmersionStep[];
+}

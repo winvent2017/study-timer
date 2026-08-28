@@ -1,20 +1,27 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { AppPhase, SessionSettings, SetRecord } from "@/types";
 import { rollAlarmSilent } from "@/lib/messages";
 import { useStopwatch } from "@/hooks/useStopwatch";
 import { useSettingsStore } from "@/hooks/useSettingsStore";
+import { VISUAL_ONLY_MODE } from "@/lib/config";
+import { DEFAULT_SEQUENCE } from "@/lib/immersionSequences";
 
 import Header from "@/components/Header";
 import SetupScreen from "@/components/SetupScreen";
 import StudyScreen from "@/components/StudyScreen";
 import ImmersionMode from "@/components/ImmersionMode";
+import ImmersionSession from "@/components/ImmersionSession";
 import GiveUpModal from "@/components/GiveUpModal";
 import AlarmModal from "@/components/AlarmModal";
 import CelebrationModal from "@/components/CelebrationModal";
 import BreakScreen from "@/components/BreakScreen";
 import SummaryScreen from "@/components/SummaryScreen";
+
+const DARKEN_MS = DEFAULT_SEQUENCE.steps.find((step) => step.type === "darken")?.durationMs ?? 0;
+const BG_EXIT_MS = 400;
 
 export default function Home() {
   const [settings, setSettings] = useSettingsStore();
@@ -23,12 +30,16 @@ export default function Home() {
   const [showGiveUp, setShowGiveUp] = useState(false);
   const [showAlarm, setShowAlarm] = useState(false);
   const [pendingRecord, setPendingRecord] = useState<SetRecord | null>(null);
+  const [setupExiting, setSetupExiting] = useState(false);
+  const [immersionBgActive, setImmersionBgActive] = useState(false);
+  const [bgTransitionMs, setBgTransitionMs] = useState(BG_EXIT_MS);
 
   const minReachedRef = useRef(false);
 
   const isFinalSet = setsCompleted.length + 1 >= settings.setCount;
 
   function handleTick(elapsedSeconds: number) {
+    if (VISUAL_ONLY_MODE) return;
     if (phase !== "studying") return;
     if (minReachedRef.current) return;
     if (elapsedSeconds >= settings.minMinutes * 60) {
@@ -46,8 +57,21 @@ export default function Home() {
   const { elapsedSeconds, reset } = useStopwatch(isRunning, handleTick);
 
   function startSession(newSettings: SessionSettings) {
-    setSettings(newSettings);
     setSetsCompleted([]);
+
+    if (VISUAL_ONLY_MODE) {
+      setImmersionBgActive(true);
+      setBgTransitionMs(DARKEN_MS);
+      setSetupExiting(true);
+      window.setTimeout(() => {
+        setSettings(newSettings);
+        setSetupExiting(false);
+      }, DARKEN_MS);
+      beginSet();
+      return;
+    }
+
+    setSettings(newSettings);
     beginSet();
   }
 
@@ -120,19 +144,45 @@ export default function Home() {
     setPhase("setup");
   }
 
+  function handlePauseRequest() {
+    // TODO: 최소 목표시간 달성/미달성에 따른 분기 반응은 추후 설계. 현재는 무조건 setup 복귀
+    setBgTransitionMs(BG_EXIT_MS);
+    setImmersionBgActive(false);
+    setSetsCompleted([]);
+    setPendingRecord(null);
+    setPhase("setup");
+  }
+
   const showHeader = phase === "setup" || phase === "summary";
+  const showSetup = phase === "setup" || setupExiting;
 
   return (
-    <main>
+    <main
+      className="main-bg-transition"
+      style={
+        {
+          backgroundColor: immersionBgActive ? "var(--immersion-bg)" : "var(--background)",
+          "--bg-transition-ms": `${bgTransitionMs}ms`,
+        } as CSSProperties
+      }
+    >
       {showHeader && <Header />}
 
-      {phase === "setup" && (
-        <SetupScreen key={JSON.stringify(settings)} initialSettings={settings} onStart={startSession} />
+      {showSetup && (
+        <div
+          className={`setup-exit-transition ${setupExiting ? "opacity-0" : "opacity-100"}`}
+          style={{ "--setup-exit-ms": `${DARKEN_MS}ms` } as CSSProperties}
+        >
+          <SetupScreen key={JSON.stringify(settings)} initialSettings={settings} onStart={startSession} />
+        </div>
       )}
 
-      {phase === "studying" && (
-        <StudyScreen minMinutes={settings.minMinutes} elapsedSeconds={elapsedSeconds} onGiveUp={handleGiveUp} />
-      )}
+      {phase === "studying" &&
+        (VISUAL_ONLY_MODE ? (
+          <ImmersionSession sequence={DEFAULT_SEQUENCE} onPause={handlePauseRequest} />
+        ) : (
+          <StudyScreen minMinutes={settings.minMinutes} elapsedSeconds={elapsedSeconds} onGiveUp={handleGiveUp} />
+        ))}
 
       {phase === "immersion" && <ImmersionMode onStop={finishSet} />}
 

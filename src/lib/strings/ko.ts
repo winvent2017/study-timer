@@ -63,6 +63,13 @@ export const strings = {
     startButton: "시작하기",
     restEyesMessage: "잠시 눈을 쉬어가요",
   },
+  immersionSession: {
+    introLine: "자, 이제 당신은 천천히 몰입의 세계에 빠지게 됩니다",
+    pauseButtonLabel: "일시정지",
+  },
+  immersionSequences: {
+    defaultName: "기본 시퀀스",
+  },
   summary: {
     title: "오늘의 요약",
     totalFocusTimeLabel: "총 몰입시간",

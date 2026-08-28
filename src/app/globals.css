@@ -7,6 +7,8 @@
   --gold-light: #ffe08a;
   --gold-mid: #f2b73f;
   --gold-dark: #d99a2b;
+  --immersion-bg: #201710;
+  --immersion-fg: #f5ede1;
 }
 
 @theme inline {
@@ -130,5 +132,51 @@ body {
 
   .cell-gold-shine::after {
     content: none;
+  }
+}
+
+.main-bg-transition {
+  transition-property: background-color;
+  transition-timing-function: ease-in-out;
+  transition-duration: var(--bg-transition-ms, 400ms);
+}
+
+.setup-exit-transition {
+  transition-property: opacity;
+  transition-timing-function: ease-out;
+  transition-duration: var(--setup-exit-ms, 1200ms);
+}
+
+@keyframes immersion-step-fade {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.immersion-step {
+  animation: immersion-step-fade var(--step-ms, 1400ms) ease-in-out both;
+}
+
+.immersion-pause-btn {
+  transition: opacity 0.3s ease;
+}
+
+.immersion-pause-btn:hover {
+  opacity: 1 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-bg-transition {
+    transition: none !important;
+  }
+
+  .setup-exit-transition {
+    transition: none !important;
+  }
+
+  .immersion-step {
+    animation: none;
+    opacity: 1;
   }
 }
