@@ -33,6 +33,7 @@ export default function Home() {
   const [setupExiting, setSetupExiting] = useState(false);
   const [immersionBgActive, setImmersionBgActive] = useState(false);
   const [bgTransitionMs, setBgTransitionMs] = useState(BG_EXIT_MS);
+  const [immersionPaused, setImmersionPaused] = useState(false);
 
   const minReachedRef = useRef(false);
 
@@ -53,7 +54,7 @@ export default function Home() {
     }
   }
 
-  const isRunning = phase === "studying" || phase === "immersion";
+  const isRunning = (phase === "studying" || phase === "immersion") && !immersionPaused;
   const { elapsedSeconds, reset } = useStopwatch(isRunning, handleTick);
 
   function startSession(newSettings: SessionSettings) {
@@ -144,13 +145,22 @@ export default function Home() {
     setPhase("setup");
   }
 
-  function handlePauseRequest() {
-    // TODO: 최소 목표시간 달성/미달성에 따른 분기 반응은 추후 설계. 현재는 무조건 setup 복귀
+  // TODO: 최소 목표시간 달성/미달성에 따른 분기 반응 설계 예정
+  function handleStopSession() {
+    setImmersionPaused(false);
     setBgTransitionMs(BG_EXIT_MS);
     setImmersionBgActive(false);
     setSetsCompleted([]);
     setPendingRecord(null);
     setPhase("setup");
+  }
+
+  function handleImmersionDialogOpen() {
+    setImmersionPaused(true);
+  }
+
+  function handleImmersionDialogResume() {
+    setImmersionPaused(false);
   }
 
   const showHeader = phase === "setup" || phase === "summary";
@@ -179,7 +189,12 @@ export default function Home() {
 
       {phase === "studying" &&
         (VISUAL_ONLY_MODE ? (
-          <ImmersionSession sequence={DEFAULT_SEQUENCE} onPause={handlePauseRequest} />
+          <ImmersionSession
+            sequence={DEFAULT_SEQUENCE}
+            onStopSession={handleStopSession}
+            onDialogOpen={handleImmersionDialogOpen}
+            onDialogResume={handleImmersionDialogResume}
+          />
         ) : (
           <StudyScreen minMinutes={settings.minMinutes} elapsedSeconds={elapsedSeconds} onGiveUp={handleGiveUp} />
         ))}

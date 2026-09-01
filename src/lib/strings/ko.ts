@@ -67,6 +67,11 @@ export const strings = {
     introLine: "자, 이제 당신은 천천히 몰입의 세계에 빠지게 됩니다",
     pauseButtonLabel: "일시정지",
   },
+  pauseDialog: {
+    question: "잠시 멈춰볼까요?",
+    continueButton: "조금만 더 해볼래요",
+    stopButton: "여기까지 할게요",
+  },
   immersionSequences: {
     defaultName: "기본 시퀀스",
   },
