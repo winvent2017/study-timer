@@ -9,6 +9,15 @@
   --gold-dark: #d99a2b;
   --immersion-bg: #201710;
   --immersion-fg: #f5ede1;
+  --warm-gray: #8a7f72;
+  /* 몰입 어두워짐 진행도 (0 → 1). JS가 갱신하고 배경·로고·버튼 색이 여기서 파생된다. */
+  --immersion-p: 0;
+  /* 세트 그리드 사각형의 실제 표시색: accent 20% ∘ (accent 10% ∘ background) */
+  --set-square-tint: color-mix(
+    in srgb,
+    var(--accent) 20%,
+    color-mix(in srgb, var(--accent) 10%, var(--background))
+  );
 }
 
 @theme inline {
@@ -135,247 +144,55 @@ body {
   }
 }
 
-.main-bg-transition {
-  transition-property: background-color;
-  transition-timing-function: ease-in-out;
-  transition-duration: var(--bg-transition-ms, 400ms);
+/* 세트 사각형 → 전체 화면 확장 오버레이. 배경은 어두워짐 진행도 p로 보간된다. */
+.immersion-overlay {
+  background-color: color-mix(
+    in srgb,
+    var(--immersion-bg) calc(var(--immersion-p, 0) * 100%),
+    var(--set-square-tint)
+  );
+  transition-property: top, left, width, height, border-radius;
+  transition-duration: var(--immersion-expand-ms, 800ms);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.setup-exit-transition {
-  transition-property: opacity;
-  transition-timing-function: ease-out;
-  transition-duration: var(--setup-exit-ms, 1200ms);
+/* 도입 텍스트 fade in/out — 중첩 요소 두 개로 고정 길이 페이드를 duration 안에 포함 */
+.immersion-intro-fade-in {
+  animation: immersion-intro-fade-in 220ms ease-out both;
 }
 
-@keyframes immersion-step-fade {
-  0% { opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { opacity: 0; }
+.immersion-intro-fade-out {
+  animation: immersion-intro-fade-out 220ms ease-in both;
+  animation-delay: calc(var(--step-ms, 1000ms) - 220ms);
 }
 
-.immersion-step {
-  animation: immersion-step-fade var(--step-ms, 1400ms) ease-in-out both;
+@keyframes immersion-intro-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.immersion-pause-btn {
-  transition: opacity 0.3s ease;
+@keyframes immersion-intro-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
-.immersion-pause-btn:hover {
-  opacity: 1 !important;
+/* 어두워짐 진행도에 따라 함께 변하는 로고/버튼 색 */
+.immersion-dim-logo {
+  color: color-mix(in srgb, var(--warm-gray) calc(var(--immersion-p, 0) * 100%), var(--foreground));
+  opacity: calc(1 - 0.5 * var(--immersion-p, 0));
 }
 
-.immersion-pause-bar {
-  display: block;
-  height: 2.5rem;
-  width: 0.625rem;
-  border-radius: 9999px;
-  background: var(--immersion-fg);
-  transform-origin: center;
-}
-
-@keyframes immersion-pause-bar-left {
-  0% {
-    transform: rotate(0deg);
-    opacity: 1;
-    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
-  }
-  59.46% {
-    transform: rotate(-90deg);
-    opacity: 1;
-    animation-timing-function: ease-out;
-  }
-  100% {
-    transform: rotate(-90deg);
-    opacity: 0;
-  }
-}
-
-@keyframes immersion-pause-bar-right {
-  0% {
-    transform: rotate(0deg);
-    opacity: 1;
-    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
-  }
-  59.46% {
-    transform: rotate(90deg);
-    opacity: 1;
-    animation-timing-function: ease-out;
-  }
-  100% {
-    transform: rotate(90deg);
-    opacity: 0;
-  }
-}
-
-.immersion-pause-bar-left.immersion-pause-bar-animating {
-  animation: immersion-pause-bar-left 370ms both;
-}
-
-.immersion-pause-bar-right.immersion-pause-bar-animating {
-  animation: immersion-pause-bar-right 370ms both;
-}
-
-.immersion-dialog-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.immersion-dialog-frame {
-  position: absolute;
-  overflow: visible;
-}
-
-.immersion-dialog-path {
-  fill: none;
-  stroke: #8a7f72;
-  stroke-opacity: 0.88;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0;
-}
-
-.immersion-dialog-overlay.is-drawing .immersion-dialog-path {
-  animation:
-    immersion-dialog-path-fade 150ms ease-out var(--dialog-draw-delay, 220ms) forwards,
-    immersion-dialog-path-draw 650ms cubic-bezier(0.45, 0, 0.25, 1) var(--dialog-draw-delay, 220ms) forwards;
-}
-
-.immersion-dialog-overlay.is-closing .immersion-dialog-path {
-  transition: opacity var(--dialog-close-ms, 300ms) ease;
-  opacity: 0;
-}
-
-@keyframes immersion-dialog-path-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes immersion-dialog-path-draw {
-  from {
-    stroke-dashoffset: var(--dash-start, 0);
-    stroke-width: 10;
-  }
-  to {
-    stroke-dashoffset: 0;
-    stroke-width: 4;
-  }
-}
-
-.immersion-dialog-content {
-  position: absolute;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.75rem;
-  padding: 2rem 1.5rem;
-  opacity: 0;
-  pointer-events: none;
-  text-align: center;
-}
-
-.immersion-dialog-overlay.is-drawing .immersion-dialog-content {
-  animation: immersion-dialog-content-fade 450ms ease-out var(--dialog-content-delay, 780ms) forwards;
-}
-
-.immersion-dialog-overlay.is-drawing.is-interactive .immersion-dialog-content {
-  pointer-events: auto;
-}
-
-.immersion-dialog-overlay.is-closing .immersion-dialog-content {
-  transition: opacity var(--dialog-close-ms, 300ms) ease;
-  opacity: 0;
-  pointer-events: none;
-}
-
-@keyframes immersion-dialog-content-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.immersion-dialog-question {
-  font-size: clamp(20px, 5vw, 26px);
-  font-weight: 500;
-  color: var(--immersion-fg);
-}
-
-.immersion-dialog-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-}
-
-.immersion-dialog-btn {
-  width: min(280px, 72%);
-  border-radius: 10px;
-  border: 1px solid rgba(242, 234, 217, 0.3);
-  background: transparent;
-  color: var(--immersion-fg);
-  padding: 13px 1rem;
-  font-size: 15px;
-  transition: background-color 0.2s ease;
-}
-
-.immersion-dialog-btn:hover {
-  background: rgba(242, 234, 217, 0.08);
-}
-
-.immersion-dialog-btn:focus-visible {
-  outline: 2px solid rgba(242, 234, 217, 0.6);
-  outline-offset: 2px;
+.immersion-dim-button {
+  background-color: color-mix(in srgb, var(--immersion-bg) calc(var(--immersion-p, 0) * 30%), var(--accent));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .main-bg-transition {
-    transition: none !important;
+  .immersion-overlay {
+    transition: none;
   }
 
-  .setup-exit-transition {
-    transition: none !important;
-  }
-
-  .immersion-step {
+  .immersion-intro-fade-in,
+  .immersion-intro-fade-out {
     animation: none;
-    opacity: 1;
-  }
-
-  .immersion-pause-bar-animating {
-    animation: none !important;
-    opacity: 0 !important;
-  }
-
-  .immersion-dialog-overlay.is-drawing .immersion-dialog-path,
-  .immersion-dialog-overlay.is-closing .immersion-dialog-path {
-    animation: none !important;
-    transition: none !important;
-    opacity: 1;
-    stroke-dashoffset: 0;
-    stroke-width: 4;
-  }
-
-  .immersion-dialog-overlay.is-drawing .immersion-dialog-content,
-  .immersion-dialog-overlay.is-closing .immersion-dialog-content {
-    animation: none !important;
-    transition: none !important;
-    opacity: 1;
-  }
-
-  .immersion-dialog-overlay.is-closing .immersion-dialog-path,
-  .immersion-dialog-overlay.is-closing .immersion-dialog-content {
-    opacity: 0;
   }
 }

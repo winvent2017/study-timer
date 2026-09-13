@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import { AppPhase, SessionSettings, SetRecord } from "@/types";
 import { rollAlarmSilent } from "@/lib/messages";
 import { useStopwatch } from "@/hooks/useStopwatch";
@@ -13,15 +12,12 @@ import Header from "@/components/Header";
 import SetupScreen from "@/components/SetupScreen";
 import StudyScreen from "@/components/StudyScreen";
 import ImmersionMode from "@/components/ImmersionMode";
-import ImmersionSession from "@/components/ImmersionSession";
+import ImmersionOverlay, { SourceRect } from "@/components/ImmersionOverlay";
 import GiveUpModal from "@/components/GiveUpModal";
 import AlarmModal from "@/components/AlarmModal";
 import CelebrationModal from "@/components/CelebrationModal";
 import BreakScreen from "@/components/BreakScreen";
 import SummaryScreen from "@/components/SummaryScreen";
-
-const DARKEN_MS = DEFAULT_SEQUENCE.steps.find((step) => step.type === "darken")?.durationMs ?? 0;
-const BG_EXIT_MS = 400;
 
 export default function Home() {
   const [settings, setSettings] = useSettingsStore();
@@ -30,14 +26,17 @@ export default function Home() {
   const [showGiveUp, setShowGiveUp] = useState(false);
   const [showAlarm, setShowAlarm] = useState(false);
   const [pendingRecord, setPendingRecord] = useState<SetRecord | null>(null);
-  const [setupExiting, setSetupExiting] = useState(false);
-  const [immersionBgActive, setImmersionBgActive] = useState(false);
-  const [bgTransitionMs, setBgTransitionMs] = useState(BG_EXIT_MS);
-  const [immersionPaused, setImmersionPaused] = useState(false);
+
+  // VISUAL_ONLY_MODE 몰입 도입 연출 상태
+  const [immersionActive, setImmersionActive] = useState(false);
+  const [immersionExpanded, setImmersionExpanded] = useState(false);
+  const [sourceRect, setSourceRect] = useState<SourceRect | null>(null);
+  const [measuring, setMeasuring] = useState(false);
 
   const minReachedRef = useRef(false);
 
   const isFinalSet = setsCompleted.length + 1 >= settings.setCount;
+  const currentSetNumber = setsCompleted.length + 1;
 
   function handleTick(elapsedSeconds: number) {
     if (VISUAL_ONLY_MODE) return;
@@ -54,26 +53,26 @@ export default function Home() {
     }
   }
 
-  const isRunning = (phase === "studying" || phase === "immersion") && !immersionPaused;
+  const isRunning = VISUAL_ONLY_MODE ? measuring : phase === "studying" || phase === "immersion";
   const { elapsedSeconds, reset } = useStopwatch(isRunning, handleTick);
 
-  function startSession(newSettings: SessionSettings) {
+  function startSession(newSettings: SessionSettings, rect: SourceRect | null) {
     setSetsCompleted([]);
+    setSettings(newSettings);
 
     if (VISUAL_ONLY_MODE) {
-      setImmersionBgActive(true);
-      setBgTransitionMs(DARKEN_MS);
-      setSetupExiting(true);
-      window.setTimeout(() => {
-        setSettings(newSettings);
-        setSetupExiting(false);
-      }, DARKEN_MS);
-      beginSet();
+      setSourceRect(rect);
+      setImmersionActive(true);
       return;
     }
 
-    setSettings(newSettings);
     beginSet();
+  }
+
+  // 도입 시퀀스가 측정 시작 step에 도달하면 경과 시간(내부 측정) 시작
+  function handleMeasureStart() {
+    reset();
+    setMeasuring(true);
   }
 
   function beginSet() {
@@ -145,59 +144,46 @@ export default function Home() {
     setPhase("setup");
   }
 
-  // TODO: 최소 목표시간 달성/미달성에 따른 분기 반응 설계 예정
-  function handleStopSession() {
-    setImmersionPaused(false);
-    setBgTransitionMs(BG_EXIT_MS);
-    setImmersionBgActive(false);
-    setSetsCompleted([]);
-    setPendingRecord(null);
-    setPhase("setup");
-  }
-
-  function handleImmersionDialogOpen() {
-    setImmersionPaused(true);
-  }
-
-  function handleImmersionDialogResume() {
-    setImmersionPaused(false);
+  // TODO: 중단하기 클릭 후 반응(최소 목표시간 달성/미달성 분기 등)은 별도 설계 예정 — 현재는 임시로 설정 화면 복귀
+  function handleStopImmersion() {
+    setImmersionActive(false);
+    setImmersionExpanded(false);
+    setSourceRect(null);
+    setMeasuring(false);
+    reset();
   }
 
   const showHeader = phase === "setup" || phase === "summary";
-  const showSetup = phase === "setup" || setupExiting;
 
   return (
-    <main
-      className="main-bg-transition"
-      style={
-        {
-          backgroundColor: immersionBgActive ? "var(--immersion-bg)" : "var(--background)",
-          "--bg-transition-ms": `${bgTransitionMs}ms`,
-        } as CSSProperties
-      }
-    >
+    <main>
       {showHeader && <Header />}
 
-      {showSetup && (
-        <div
-          className={`setup-exit-transition ${setupExiting ? "opacity-0" : "opacity-100"}`}
-          style={{ "--setup-exit-ms": `${DARKEN_MS}ms` } as CSSProperties}
-        >
-          <SetupScreen key={JSON.stringify(settings)} initialSettings={settings} onStart={startSession} />
-        </div>
+      {phase === "setup" && (
+        <SetupScreen
+          key={JSON.stringify(settings)}
+          initialSettings={settings}
+          currentSetNumber={currentSetNumber}
+          immersionActive={immersionActive}
+          showStopLabel={immersionExpanded}
+          onStart={startSession}
+          onStopImmersion={handleStopImmersion}
+        />
       )}
 
-      {phase === "studying" &&
-        (VISUAL_ONLY_MODE ? (
-          <ImmersionSession
-            sequence={DEFAULT_SEQUENCE}
-            onStopSession={handleStopSession}
-            onDialogOpen={handleImmersionDialogOpen}
-            onDialogResume={handleImmersionDialogResume}
-          />
-        ) : (
-          <StudyScreen minMinutes={settings.minMinutes} elapsedSeconds={elapsedSeconds} onGiveUp={handleGiveUp} />
-        ))}
+      {immersionActive && (
+        <ImmersionOverlay
+          sequence={DEFAULT_SEQUENCE}
+          sourceRect={sourceRect}
+          setNumber={currentSetNumber}
+          onExpandComplete={() => setImmersionExpanded(true)}
+          onMeasureStart={handleMeasureStart}
+        />
+      )}
+
+      {phase === "studying" && !VISUAL_ONLY_MODE && (
+        <StudyScreen minMinutes={settings.minMinutes} elapsedSeconds={elapsedSeconds} onGiveUp={handleGiveUp} />
+      )}
 
       {phase === "immersion" && <ImmersionMode onStop={finishSet} />}
 

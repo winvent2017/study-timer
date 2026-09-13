@@ -15,7 +15,7 @@ export default function Header() {
 
   return (
     <header className="mx-auto flex w-full max-w-md items-center justify-between px-5 py-4">
-      <span className="text-xl font-bold text-[var(--foreground)]">{strings.header.logo}</span>
+      <span className="immersion-dim-logo relative z-50 text-xl font-bold">{strings.header.logo}</span>
       <div className="flex items-center gap-2">
         <button
           onClick={handleLoginClick}

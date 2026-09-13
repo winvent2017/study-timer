@@ -1,21 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SessionSettings } from "@/types";
 import { strings } from "@/lib/strings/ko";
 import SetCountGrid from "@/components/SetCountGrid";
+import type { SourceRect } from "@/components/ImmersionOverlay";
 
 interface Props {
   initialSettings: SessionSettings;
-  onStart: (settings: SessionSettings) => void;
+  currentSetNumber: number; // 세션 내에서 지금 시작할 세트의 1-based 순번
+  immersionActive: boolean;
+  showStopLabel: boolean;
+  onStart: (settings: SessionSettings, sourceRect: SourceRect | null) => void;
+  onStopImmersion: () => void;
 }
 
-export default function SetupScreen({ initialSettings, onStart }: Props) {
+export default function SetupScreen({
+  initialSettings,
+  currentSetNumber,
+  immersionActive,
+  showStopLabel,
+  onStart,
+  onStopImmersion,
+}: Props) {
   const [settings, setSettings] = useState<SessionSettings>(initialSettings);
   const [committedSetCount, setCommittedSetCount] = useState(initialSettings.setCount);
+  const gridWrapRef = useRef<HTMLDivElement>(null);
 
-  function handleStart() {
-    onStart(settings);
+  function handleButtonClick() {
+    if (immersionActive) {
+      onStopImmersion();
+      return;
+    }
+    // 현재 세트 순번의 사각형(1-based, 행 우선)을 확장 원본으로 측정
+    const squares = gridWrapRef.current?.querySelectorAll("[data-set-square]");
+    const source = squares?.[currentSetNumber - 1];
+    onStart(settings, source ? source.getBoundingClientRect() : null);
   }
 
   return (
@@ -37,7 +57,7 @@ export default function SetupScreen({ initialSettings, onStart }: Props) {
           onChange={(v) => setSettings((s) => ({ ...s, minMinutes: v }))}
         />
 
-        <div>
+        <div ref={gridWrapRef}>
           <FieldSlider
             label={strings.setup.setCountLabel}
             value={settings.setCount}
@@ -74,10 +94,23 @@ export default function SetupScreen({ initialSettings, onStart }: Props) {
       </p>
 
       <button
-        onClick={handleStart}
-        className="w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-semibold text-white shadow-md transition active:scale-[0.98]"
+        onClick={handleButtonClick}
+        className="immersion-dim-button relative z-50 w-full rounded-2xl py-4 text-lg font-semibold text-white shadow-md transition active:scale-[0.98]"
       >
-        {strings.setup.startButton}
+        <span
+          aria-hidden={showStopLabel}
+          className={`transition-opacity duration-200 ${showStopLabel ? "opacity-0" : "opacity-100"}`}
+        >
+          {strings.setup.startButton}
+        </span>
+        <span
+          aria-hidden={!showStopLabel}
+          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
+            showStopLabel ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {strings.session.stopButton}
+        </span>
       </button>
     </div>
   );

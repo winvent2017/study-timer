@@ -63,14 +63,14 @@ export const strings = {
     startButton: "시작하기",
     restEyesMessage: "잠시 눈을 쉬어가요",
   },
-  immersionSession: {
-    introLine: "자, 이제 당신은 천천히 몰입의 세계에 빠지게 됩니다",
-    pauseButtonLabel: "일시정지",
+  immersionIntro: {
+    setLabel: (n: number) => `${n}세트`,
+    start: "자, 이제 시작합니다.",
+    enter: "당신은 천천히 몰입의 세계로 들어갑니다.",
+    dimNotice: "이 화면은 서서히 어두워질 거예요.",
   },
-  pauseDialog: {
-    question: "잠시 멈춰볼까요?",
-    continueButton: "조금만 더 해볼래요",
-    stopButton: "여기까지 할게요",
+  session: {
+    stopButton: "중단하기",
   },
   immersionSequences: {
     defaultName: "기본 시퀀스",

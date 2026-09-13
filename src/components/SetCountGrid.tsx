@@ -116,6 +116,7 @@ export default function SetCountGrid({
             return (
               <div
                 key={sq.id}
+                data-set-square
                 className={cellClassName}
                 style={{
                   height: cellHeight,
